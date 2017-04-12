@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<head>
+	<title>Dual Garden Control Panel</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<script src="https://cdn.socket.io/socket.io-1.0.0.js"></script> 
+	
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap-3.3.6/css/bootstrap.min.css"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+	<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+	<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+	
+	<meta charset="UTF-8"> 
+
+	<style type="text/css">
+	table, th, td {
+    border: 1px solid black; 
+	}
+
+	th, td {
+	    padding: 10px;
+	}
+	</style>
+
+	<script type="text/javascript">
+		
+		var socket = io.connect(); //io('http://localhost'); or add :8080 or '/'
+		var thisid;
+
+		$(window).on('beforeunload', function(){
+ 	    socket.close();
+		});
+
+		window.onload = function(){
+
+
+			function controlOn(pin, state) {
+				var outcmd = {
+					pin: pin,
+					state: state
+				}
+				socket.emit('controlPin', outcmd);
+			}
+
+			function i2cByte(addr, inval) {
+				var outcmd = {
+					addr: addr,
+					cmd: inval,
+				}
+				socket.emit('i2cByte', outcmd);
+				console.log(outcmd);
+			}
+
+			function i2cBright(addr, command, inval) {
+				var outcmd = {
+					addr: addr,
+					cmd: command,
+					val: inval
+				}
+				socket.emit('i2cBright', outcmd);
+				console.log(outcmd);
+			}
+
+	//Attach on/off functionality to buttons
+			$('.b1').change(function() {
+		    	var oncmd = {
+		    		6: 86,
+		    		7: 87,
+		    		8: 88,
+		    		9: 89,
+		    	}
+		    	var offcmd = {
+		    		6: 70,
+		    		7: 71,
+		    		8: 72,
+		    		9: 73
+		    	}
+		    	var addr = Number(document.getElementById(this.id).getAttribute("data-address"));
+
+		    	if ($(this).is(':checked')) {
+		    		var outcmd = Number(oncmd[$(this).data("button")]);
+		    	}
+		    	else {
+		    		var outcmd = Number(offcmd[$(this).data("button")]);
+		    	}
+		    	
+		    	i2cByte(addr, outcmd);
+		    });
+
+
+		    $('.bs').change(function() { // handles the buttons for sliders. 
+
+		    	var offcmd = {
+		    		6: 70,
+		    		9: 73
+		    	}
+				
+				var oncmd = {
+					6: 16,
+					9: 17
+				}
+
+		    	var slbuid = {
+		    		g1b6: "slider-6",
+		    		g1b9: "slider-9",
+		    		g2b6: "slider-6b",
+		    		g2b9: "slider-9b"
+		    	}
+
+		    	var addr = Number($(this).data("address"));
+		    	console.log($(this).data("button"));
+		    	if ($(this).is(':checked')) {
+		    		var addrcmd = oncmd[$(this).data("button")];
+		    		
+		console.log("addrcmd: " + addrcmd);
+		    		var outval = Number(document.getElementById(slbuid[this.id]).value);
+		    		i2cBright(addr, addrcmd, outval);
+		    	}
+
+		    	else {
+		    		var outcmd = Number(offcmd[$(this).data("button")]);
+		    		i2cByte(addr, outcmd);
+		    	}
+
+		    });
+
+
+			$(function() {
+				
+				$(".slider").on('input', function (e) {
+					var sendaddr = Number($(this).data("address"));
+					var addrcmd = Number($(this).data("command"));
+					 var targ = "#" + $(this).data("target");
+					 console.log("target: " + targ);
+					$(targ).html(this.value);
+					i2cBright(sendaddr, addrcmd, Number(this.value));
+				});
+
+			});
+		
+
+			$(function() {
+
+				socket.on('datasent', function(data) {
+					$("#ana1a").html(data.afahr); //ana1;
+					$("#ana2a").html(data.acel); //ana2);
+					$("#ana1b").html(data.bfahr); //ana1;
+					$("#ana2b").html(data.bcel); //ana2);
+				});
+			});
+
+		}
+
+		window.setInterval(function() {
+			socket.emit('datareq')
+		}, 1000);
+
+	</script>
+
+</head>
+<body>
+	<div class="container">
+		<div class="row">
+		<div class="col-xs-12 col-md-3" id="control1" style="border-style: solid; background-color:#E0E0E0; padding: 10px;">
+			<h1>Control 1</h1>
+		
+			<div>
+				<table cellpadding="10px">
+					<tr>
+						<th style="width:125px">Pin</th>
+						<th style="width:75px">Switch</th>	
+						<th style="width:75px">Value</th>
+					</tr>
+					<tr>
+						<td rowspan="2">Pin 6</td>
+						<td><input type="checkbox" id="g1b6" class="bs" checked data-toggle="toggle" data-button="6" data-address="9"></td>
+						<td id="v6">0</td>
+					</tr>
+					<tr>
+						<td colspan="2"><input type="range" id="slider-6" class="slider" min="0" max="255" step="5" value="0" data-target="v6" data-command="16" data-address="9"></td>
+					</tr>
+					<tr>
+						<td>Pin 7</td>
+						<td><input type="checkbox" id="g1b7" class="b1" data-toggle="toggle" data-button="7" data-address="9"></td>
+						<td id="sevbef"></td>
+					</tr>
+					<tr>
+						<td>Pin 8</td>
+						<td><input type="checkbox" id="g1b8" class="b1" data-toggle="toggle" data-button="8" data-address="9"></td>
+						<td id="eightbef"></td>
+					</tr>
+					<tr>
+						<td rowspan="2">Pin 9</td>
+						<td><input type="checkbox" id="g1b9" class="bs" data-toggle="toggle" data-button="9" data-address="9"></td>
+						<td id="v9">0</td>
+					</tr>
+					<tr>
+						<td colspan="2"><input type="range" id="slider-9" min="0" max="255" step="5" value="0" class="slider" data-target="v9" data-address="9" data-command="17"></td>
+					</tr>
+					<tr>
+						<td>Fahrenheit</td>
+						<td></td>
+						<td id="ana1a"></td>
+					</tr>
+					<tr>
+						<td>Celsius</td>
+						<td></td>
+						<td id="ana2a"></td>
+					</tr>
+				</table>
+			</div>
+		</div>
+
+		
+			<div class="col-xs-1 col-md-1" id="space" style=" background-color:#FFFFFF; padding: 10px; float:left;"></div>
+
+
+		<div class="col-xs-12 col-md-3" id="control2" style="border-style: solid; background-color:#E0E0E0; padding: 10px; float:left;">
+			<h1>Control 2</h1>
+		
+			<div>
+				<table cellpadding="10px">
+					<tr>
+						<th style="width:125px">Pin</th>
+						<th style="width:75px">Switch</th>	
+						<th style="width:75px">Value</th>
+					</tr>
+					<tr>
+						<td rowspan="2">Pin 6</td>
+						<td><input type="checkbox" id="g2b6" class="bs" checked data-toggle="toggle" data-button="6" data-address="10"></td>
+						<td id="v6b">0</td>
+					</tr>
+					<tr>
+						<td colspan="2"><input type="range" id="slider-6b" class="slider" min="0" max="255" step="5" value="0" class="slider" data-target="v6b" data-command="16" data-address="10"></td>
+					</tr>
+					<tr>
+						<td>Pin 7</td>
+						<td><input type="checkbox" id="g2b7" class="b1" data-toggle="toggle" data-button="7" data-address="10"></td>
+						<td id="sevbefb"></td>
+					</tr>
+					<tr>
+						<td>Pin 8</td>
+						<td><input type="checkbox" id="g2b8" class="b1" data-toggle="toggle" data-button="8" data-address="10"></td>
+						<td id="eightbef"></td>
+					</tr>
+					<tr>
+						<td rowspan="2">Pin 9</td>
+						<td><input type="checkbox" id="g2b9" class="bs" data-toggle="toggle" data-button="9" data-address="10"></td>
+						<td id="v9b">0</td>
+					</tr>
+					<tr>
+						<td colspan="2"><input type="range" id="slider-9b" min="0" max="255" step="5" class="slider" value="0" class="slider" data-target="v9b" data-address="10" data-command="17"></td>
+					</tr>
+					<tr>
+						<td>Fahrenheit</td>
+						<td></td>
+						<td id="ana1b"></td>
+					</tr>
+					<tr>
+						<td>Celsius</td>
+						<td></td>
+						<td id="ana2b"></td>
+					</tr>
+				</table>
+			</div>
+		</div>
+
+
+
+		</div>
+	</div>
+</body>
+</html>
+
