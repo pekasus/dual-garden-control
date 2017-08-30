@@ -146,10 +146,10 @@
 			$(function() {
 
 				socket.on('datasent', function(data) {
-					$("#ana1a").html(data.afahr); //ana1;
-					$("#ana2a").html(data.acel); //ana2);
-					$("#ana1b").html(data.bfahr); //ana1;
-					$("#ana2b").html(data.bcel); //ana2);
+					$("#an1a").html(data.afahr); 
+					$("#an2a").html(data.acel); 
+					$("#an1b").html(data.bfahr); 
+					$("#an2b").html(data.bcel); 
 				});
 			});
 
@@ -204,12 +204,12 @@
 					<tr>
 						<td>Fahrenheit</td>
 						<td></td>
-						<td id="ana1a"></td>
+						<td id="an1a"></td>
 					</tr>
 					<tr>
 						<td>Celsius</td>
 						<td></td>
-						<td id="ana2a"></td>
+						<td id="an2a"></td>
 					</tr>
 				</table>
 			</div>
@@ -258,12 +258,12 @@
 					<tr>
 						<td>Fahrenheit</td>
 						<td></td>
-						<td id="ana1b"></td>
+						<td id="an1b"></td>
 					</tr>
 					<tr>
 						<td>Celsius</td>
 						<td></td>
-						<td id="ana2b"></td>
+						<td id="an2b"></td>
 					</tr>
 				</table>
 			</div>
